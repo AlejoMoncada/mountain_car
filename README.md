@@ -1,5 +1,50 @@
 ![CI](https://github.com/emiliomunozai/mountain_car/actions/workflows/ci.yml/badge.svg?branch=main)
 
+## Entrega — Actividad 2 (Alejandro Moncada)
+
+> **Documento de entrega:** [ENTREGA-ACTIVIDAD-2.md](ENTREGA-ACTIVIDAD-2.md) · **Comparación de métodos:** [docs/comparacion-qlearning-dqn.md](docs/comparacion-qlearning-dqn.md)
+
+Este repositorio, derivado del repositorio base del curso, contiene la solución de la Actividad 2: un agente **Q-Learning tabular** con discretización del estado y un agente **DQN**, ambos entrenados y comparados sobre `MountainCar-v0`.
+
+### Resultados medidos
+
+| Métrica (evaluación voraz, 100 episodios) | Q-Learning | DQN |
+|---|---|---|
+| Retorno promedio | −166,88 | **−112,34** |
+| Episodios con bandera alcanzada | 84 / 100 | **89 / 100** |
+| Mejor retorno | −128 | **−84** |
+| Episodios de entrenamiento | 20.000 | 2.500 |
+| Duración del entrenamiento | **35,5 s** | 3 m 40 s |
+
+Línea base medida: con acciones completamente aleatorias la bandera se alcanzó **0 veces en 500 episodios**, lo que motivó la corrección de exploración descrita en [docs/dqn-exploration-diagnosis.md](docs/dqn-exploration-diagnosis.md).
+
+### Cómo ejecutar
+
+```bash
+uv sync                                                          # Python 3.11
+uv run python -m unittest discover -s tests -p 'test_*.py' -v     # 23 pruebas
+uv run python scripts/run_qlearning_experiment.py                 # Q-Learning  (~35 s)
+uv run python scripts/measure_random_exploration.py               # línea base aleatoria
+uv run python scripts/run_dqn_experiment.py                       # DQN         (~4 min)
+```
+
+Cada experimento escribe `training_episodes.csv`, `evaluation_episodes.csv`, `summary.json` y `training_curve.png` en su carpeta de `artifacts/`, con semillas fijas y disjuntas entre entrenamiento y evaluación.
+
+### Documentación y evidencia
+
+| Contenido | Ubicación |
+|---|---|
+| Informe de entrega | `ENTREGA-ACTIVIDAD-2.md` |
+| Comparación Q-Learning frente a DQN | `docs/comparacion-qlearning-dqn.md` |
+| Guía conceptual de Q-Learning | `docs/qlearning-foundations.md` |
+| Guía conceptual de DQN | `docs/dqn-foundations.md` |
+| Diagnóstico de exploración | `docs/dqn-exploration-diagnosis.md` |
+| Protocolo y resultados tabulares | `docs/qlearning-experiment.md` |
+| Evidencia de resultados | `artifacts/qlearning/seed-20250308/`, `artifacts/dqn/seed-20250310/` |
+| Esquemas del estudiante | `docs/esquemas/` |
+
+---
+
 A hands-on repo for understanding how Reinforcement Learning works.
 Train, inspect, and visualise RL agents on [MountainCar-v0](https://gymnasium.farama.org/environments/classic_control/mountain_car/) (or any other Gymnasium environment).
 
