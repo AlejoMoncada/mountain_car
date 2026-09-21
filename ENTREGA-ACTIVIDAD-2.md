@@ -13,6 +13,25 @@ Se formularon y resolvieron dos enfoques de Aprendizaje por Refuerzo sobre el en
 
 ---
 
+## Entregables de la actividad
+
+| # | Entregable | Dónde se encuentra | Estado |
+|---|---|---|---|
+| 1 | **Repositorio público de GitHub** con el código y el README que documenta el proceso y cómo ejecutarlo | https://github.com/AlejoMoncada/mountain_car | Entregado |
+| 2 | **Informe de la actividad** (este documento), con la formulación del problema, los esquemas, la evidencia y la comparación | `ENTREGA-ACTIVIDAD-2.md` | Entregado |
+| 3 | **Esquema del entrenamiento de Q-Learning** — dibujo propio del ciclo estado → acción → recompensa → actualización | `docs/esquemas/qlearning-esquema.png` | Ver sección 2 |
+| 4 | **Esquema del entrenamiento de DQN** — dibujo propio del ciclo con memoria de experiencias, red objetivo y actualización de Bellman | `docs/esquemas/dqn-esquema.png` | Ver sección 3 |
+| 5 | **Evidencia del mejor resultado de Q-Learning** — curva de entrenamiento, métrica alcanzada y comentario | `artifacts/qlearning/seed-20250308/` | Ver sección 4.1 |
+| 6 | **Evidencia del mejor resultado de DQN** — curva de entrenamiento, métrica alcanzada y comentario | `artifacts/dqn/seed-20250310/` | Ver sección 4.2 |
+| 7 | **Medición del problema de exploración** (ejercicio 3), con evidencia numérica | `artifacts/dqn/random-exploration/seed-20250310/` | Ver sección 4.3 |
+| 8 | **Código versionado con commits descriptivos** | Rama `main` del repositorio | Entregado |
+
+**Cómo leer la evidencia:** cada carpeta de `artifacts/` contiene `training_episodes.csv` (métricas de cada episodio de entrenamiento), `evaluation_episodes.csv` (los 100 episodios de evaluación voraz), `summary.json` (resumen con configuración, versiones y estadísticas) y `training_curve.png` (la curva de aprendizaje). Los valores citados en este informe fueron **recalculados desde esos archivos**, no copiados de una ejecución anterior.
+
+**Sobre los esquemas:** los dibujos son de elaboración propia del estudiante, tal como lo exige la rúbrica. El material de estudio generado con IA se conserva aparte y **no forma parte de la entrega**.
+
+---
+
 ## 1. El problema como proceso de decisión
 
 | Elemento | Descripción |
