@@ -100,13 +100,15 @@ def evaluate(agent: DQNAgent, episodes: int, seed: int) -> list[dict[str, Any]]:
 def statistics(rows: list[dict[str, Any]]) -> dict[str, float | int]:
     returns = np.array([row["return"] for row in rows], dtype=float)
     steps = np.array([row["steps"] for row in rows], dtype=float)
+    # NumPy scalars subclass float, so the summary stays JSON-serializable
+    # without wrapping every aggregate in a redundant conversion call.
     return {
         "episodes": len(rows),
-        "mean_return": float(returns.mean()),
-        "std_return": float(returns.std()),
-        "min_return": float(returns.min()),
-        "max_return": float(returns.max()),
-        "mean_steps": float(steps.mean()),
+        "mean_return": returns.mean(),
+        "std_return": returns.std(),
+        "min_return": returns.min(),
+        "max_return": returns.max(),
+        "mean_steps": steps.mean(),
         "successes": sum(bool(row["terminated"]) for row in rows),
     }
 
