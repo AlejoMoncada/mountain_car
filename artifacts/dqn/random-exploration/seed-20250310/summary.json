@@ -1,0 +1,28 @@
+{
+  "episodes": 500,
+  "terminated_count": 0,
+  "truncated_count": 500,
+  "success_rate": 0.0,
+  "mean_return": -200.0,
+  "mean_final_position": -0.5169559219777584,
+  "max_final_position": -0.2282896488904953,
+  "mean_max_position": -0.3888909391760826,
+  "max_max_position": -0.1683390736579895,
+  "longest_identical_action_run": 11,
+  "longest_run_context": {
+    "length": 11,
+    "action": 0,
+    "start_step": 44,
+    "episode_index": 146
+  },
+  "environment": "MountainCar-v0",
+  "environment_max_episode_steps": 200,
+  "base_seed": 20250310,
+  "action_sampler": "env.action_space.sample()",
+  "action_space_seeded_per_episode": true,
+  "versions": {
+    "gymnasium": "1.3.0",
+    "python": "3.11.13"
+  },
+  "episode_csv": "episodes.csv"
+}
