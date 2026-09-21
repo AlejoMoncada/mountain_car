@@ -57,7 +57,7 @@ class QLearningAgent:
         Tip: np.digitize(value, edges) returns the index of the bin a value
         falls into. Tip: the key must be hashable, so build a tuple of ints.
         """
-        raise NotImplementedError("EXERCISE 1a: implement discretize()")
+        return tuple(int(np.digitize(value, edges)) for value, edges in zip(obs, self._bins))
 
     def select_action(self, state: tuple, *, deterministic: bool = False) -> int:
         """EXERCISE 1b: epsilon-greedy action selection.
@@ -72,7 +72,9 @@ class QLearningAgent:
         Tip: self.q_table is a defaultdict, so indexing an unseen state is safe
         and returns a zero vector. Tip: np.argmax gives you the best action.
         """
-        raise NotImplementedError("EXERCISE 1b: implement select_action()")
+        if not deterministic and np.random.random() < self.epsilon:
+            return int(np.random.randint(self.n_actions))
+        return int(np.argmax(self.q_table[state]))
 
     def predict(self, obs: np.ndarray, *, deterministic: bool = True) -> tuple[int, None]:
         return self.select_action(self.discretize(obs), deterministic=deterministic), None
@@ -100,7 +102,8 @@ class QLearningAgent:
         Note that `terminated` is NOT the same as "the episode ended" -- see
         the training loop below for why that distinction matters here.
         """
-        raise NotImplementedError("EXERCISE 1c: implement the Q-Learning update")
+        target = reward if terminated else reward + self.gamma * np.max(self.q_table[next_state])
+        self.q_table[state][action] += self.lr * (target - self.q_table[state][action])
 
     def train(self, total_episodes: int = 10_000, log_interval: int = 100) -> list[float]:
         env = gym.make(self.env_id)

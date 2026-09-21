@@ -101,8 +101,10 @@ for both dimensions, so the state space is discretised into an
 `n_bins x n_bins` grid (400 states by default) and stored in a plain Q-table.
 
 Defaults: `n_bins=20`, `lr=0.1`, `gamma=0.99`, epsilon `1.0 -> 0.01` decaying by
-`0.9995` per episode. A correct implementation scores about `-133` and reaches
-the flag in 100/100 episodes, after roughly 20k episodes (~4 min).
+`0.9995` per episode. See [Q-Learning foundations](docs/qlearning-foundations.md)
+for the MDP, discretization, action-selection, and TD-update concepts. A correct
+implementation scores about `-133` and reaches the flag in 100/100 episodes,
+after roughly 20k episodes (~4 min).
 
 ### `dqn` — Deep Q-Network
 
