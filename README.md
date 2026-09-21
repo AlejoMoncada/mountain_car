@@ -88,6 +88,21 @@ uv run mountaincar load qlearning --eval
 uv run mountaincar render qlearning --episodes 3
 ```
 
+### Reproducible Q-learning experiment
+
+For a fresh run that records per-episode CSV files, a JSON summary, and a
+training curve, use the [experiment protocol](docs/qlearning-experiment.md):
+
+```bash
+uv run python scripts/run_qlearning_experiment.py \
+  --output-dir artifacts/qlearning/seed-20250308 \
+  --save-path saves/qlearning_seed-20250308.pkl
+```
+
+It starts a new agent instead of resuming a CLI checkpoint and refuses to
+overwrite existing artifacts. The protocol uses separate training and greedy
+evaluation seed ranges; see the document for interpretation and limitations.
+
 ## Agents
 
 Both agents live in `src/mountain_car/agents/` and are written from scratch
@@ -102,9 +117,9 @@ for both dimensions, so the state space is discretised into an
 
 Defaults: `n_bins=20`, `lr=0.1`, `gamma=0.99`, epsilon `1.0 -> 0.01` decaying by
 `0.9995` per episode. See [Q-Learning foundations](docs/qlearning-foundations.md)
-for the MDP, discretization, action-selection, and TD-update concepts. A correct
-implementation scores about `-133` and reaches the flag in 100/100 episodes,
-after roughly 20k episodes (~4 min).
+for the MDP, discretization, action-selection, and TD-update concepts, and the
+[experiment protocol](docs/qlearning-experiment.md) for how to record observed
+training and greedy-evaluation results without pre-claiming an outcome.
 
 ### `dqn` — Deep Q-Network
 

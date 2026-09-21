@@ -81,6 +81,42 @@ class QLearningAgentTest(unittest.TestCase):
 
         self.assertAlmostEqual(agent.q_table[state][2], 2.25)
 
+    def test_seeded_training_is_reproducible_except_for_elapsed_time(self) -> None:
+        def run_once():
+            agent = self.make_agent()
+            events = []
+            returns = agent.train(3, log_interval=10, seed=123, episode_callback=events.append)
+            return returns, [{k: v for k, v in event.items() if k != "time"} for event in events]
+
+        self.assertEqual(run_once(), run_once())
+
+    def test_callback_reports_seed_and_distinguishes_terminal_from_truncated(self) -> None:
+        agent = self.make_agent()
+        events = []
+
+        class TwoEpisodeEnv:
+            def __init__(self) -> None:
+                self.reset_seeds = []
+
+            def reset(self, *, seed):
+                self.reset_seeds.append(seed)
+                return np.array([-0.5, 0.0]), {}
+
+            def step(self, _action):
+                terminated = len(self.reset_seeds) == 1
+                return np.array([-0.5, 0.0]), -1.0, terminated, not terminated, {}
+
+            def close(self) -> None:
+                pass
+
+        env = TwoEpisodeEnv()
+        with patch("mountain_car.agents.qlearning.gym.make", return_value=env):
+            agent.train(2, log_interval=10, seed=50, episode_callback=events.append)
+
+        self.assertEqual(env.reset_seeds, [50, 51])
+        self.assertEqual([(event["terminated"], event["truncated"]) for event in events], [(True, False), (False, True)])
+        self.assertEqual([event["epsilon"] for event in events], [1.0, 0.9995])
+
     def test_save_and_load_preserve_learned_values_and_training_state(self) -> None:
         agent = self.make_agent(epsilon_start=0.3, lr=0.25, gamma=0.9)
         agent.q_table[(2, 3)] = np.array([1.0, -2.0, 4.5])
