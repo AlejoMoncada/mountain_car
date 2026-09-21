@@ -40,10 +40,16 @@ class QNetwork(nn.Module):
 
     def __init__(self, state_dim: int, action_dim: int, hidden: int = 128) -> None:
         super().__init__()
-        raise NotImplementedError("EXERCISE 2a: build the Q-network")
+        self.layers = nn.Sequential(
+            nn.Linear(state_dim, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, action_dim),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("EXERCISE 2a: implement forward()")
+        return self.layers(x)
 
 
 # ── Replay buffer ────────────────────────────────────────────────────
@@ -169,7 +175,7 @@ class DQNAgent:
             return 0.0
 
         batch = self.buffer.sample(self.batch_size)
-        states, actions, rewards, next_states, terminateds = zip(*batch)
+        states, actions, rewards, next_states, terminateds = zip(*batch, strict=True)
 
         states_t = self._tensor(states)
         actions_t = self._tensor(actions, torch.int64).unsqueeze(1)
@@ -177,27 +183,16 @@ class DQNAgent:
         next_states_t = self._tensor(next_states)
         terminateds_t = self._tensor(terminateds).unsqueeze(1)
 
-        # EXERCISE 2b: the DQN learning step. Four things to do:
-        #
-        #   1. current_q : Q(s, a) from the ONLINE net, for the actions that
-        #      were actually taken. self.q_net(states_t) is (B, action_dim);
-        #      you want (B, 1). Tip: .gather(1, actions_t) picks one column
-        #      per row.
-        #
-        #   2. next_q : max_a' Q_target(s', a') from the FROZEN TARGET net.
-        #      Tip: .max(dim=1, keepdim=True).values
-        #      Tip: wrap this in `with torch.no_grad():` -- no gradient should
-        #      flow into the target, that is the whole point of a target net.
-        #
-        #   3. target_q : the Bellman target, r + gamma * next_q, but with the
-        #      bootstrap term zeroed out wherever terminateds_t is 1.
-        #      Tip: multiplying by (1.0 - terminateds_t) does this branchlessly.
-        #
-        #   4. Take one gradient step on self.loss_fn(current_q, target_q).
-        #      Tip: zero_grad() -> backward() -> step(), in that order.
-        #
-        # Return the scalar loss value (.item()).
-        raise NotImplementedError("EXERCISE 2b: implement the DQN learning step")
+        current_q = self.q_net(states_t).gather(1, actions_t)
+        with torch.no_grad():
+            next_q = self.target_net(next_states_t).max(dim=1, keepdim=True).values
+            target_q = rewards_t + self.gamma * next_q * (1.0 - terminateds_t)
+
+        loss = self.loss_fn(current_q, target_q)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        return float(loss.item())
 
     # ── training loop ─────────────────────────────────────────────────
 
