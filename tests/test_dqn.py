@@ -105,6 +105,7 @@ class DQNAgentLearnTest(unittest.TestCase):
             buffer_capacity=9,
             target_update_freq=4,
             hidden=16,
+            explore_run_length=3,
         )
 
         with tempfile.TemporaryDirectory() as directory:
@@ -114,6 +115,160 @@ class DQNAgentLearnTest(unittest.TestCase):
 
         for name in agent._HPARAMS:
             self.assertEqual(getattr(loaded, name), getattr(agent, name))
+
+
+class DQNAgentExplorationTest(unittest.TestCase):
+    def make_agent(self, **kwargs) -> DQNAgent:
+        with patch("mountain_car.agents.dqn.torch.cuda.is_available", return_value=False):
+            return DQNAgent("MountainCar-v0", **kwargs)
+
+    @staticmethod
+    def longest_identical_run(actions: list[int]) -> int:
+        longest = current = 0
+        previous = None
+        for action in actions:
+            if action == previous:
+                current += 1
+            else:
+                previous = action
+                current = 1
+            longest = max(longest, current)
+        return longest
+
+    def test_deterministic_selection_is_greedy_with_an_active_exploration_run(self) -> None:
+        agent = self.make_agent(epsilon_start=1.0)
+        state = np.array([-0.5, 0.0], dtype=np.float32)
+        agent._explore_action = 0
+        agent._explore_remaining = 3
+        with torch.no_grad():
+            expected = int(
+                agent.q_net(torch.as_tensor(state, device=agent.device).unsqueeze(0))
+                .argmax(dim=1)
+                .item()
+            )
+
+        with (
+            patch("mountain_car.agents.dqn.random.random") as random_value,
+            patch("mountain_car.agents.dqn.random.randrange") as random_action,
+        ):
+            action = agent.select_action(state, deterministic=True)
+
+        self.assertEqual(action, expected)
+        self.assertEqual(agent._explore_remaining, 3)
+        random_value.assert_not_called()
+        random_action.assert_not_called()
+
+    def test_active_exploratory_run_repeats_its_action(self) -> None:
+        agent = self.make_agent(epsilon_start=1.0, explore_run_length=4)
+        state = np.array([-0.5, 0.0], dtype=np.float32)
+
+        with (
+            patch("mountain_car.agents.dqn.random.randrange", side_effect=[2, 1]),
+            patch("mountain_car.agents.dqn.random.randint", return_value=4),
+        ):
+            actions = [agent.select_action(state) for _ in range(5)]
+
+        self.assertEqual(actions, [2, 2, 2, 2, 1])
+
+    def test_exploration_run_counter_resets_between_episodes(self) -> None:
+        agent = self.make_agent(epsilon_start=1.0, explore_run_length=3)
+
+        class TwoEpisodeEnv:
+            def __init__(self) -> None:
+                self.run_state_at_reset: list[tuple[int | None, int]] = []
+
+            def reset(self, *, seed: int | None = None):
+                self.run_state_at_reset.append((agent._explore_action, agent._explore_remaining))
+                return np.array([-0.5, 0.0], dtype=np.float32), {}
+
+            def step(self, _action: int):
+                return np.array([-0.5, 0.0], dtype=np.float32), -1.0, True, False, {}
+
+            def close(self) -> None:
+                pass
+
+        env = TwoEpisodeEnv()
+        with (
+            patch("mountain_car.agents.dqn.gym.make", return_value=env),
+            patch("mountain_car.agents.dqn.random.randrange", return_value=1),
+            patch("mountain_car.agents.dqn.random.randint", return_value=3),
+        ):
+            agent.train(2, log_interval=10, seed=50)
+
+        self.assertEqual(env.run_state_at_reset, [(None, 0), (None, 0)])
+
+    def test_configured_exploration_run_length_bounds_each_run(self) -> None:
+        agent = self.make_agent(epsilon_start=1.0, explore_run_length=3)
+        state = np.array([-0.5, 0.0], dtype=np.float32)
+
+        with (
+            patch("mountain_car.agents.dqn.random.randrange", side_effect=[0, 1, 2, 0]),
+            patch("mountain_car.agents.dqn.random.randint", return_value=3),
+        ):
+            actions = [agent.select_action(state) for _ in range(12)]
+
+        self.assertLessEqual(self.longest_identical_run(actions), agent.explore_run_length)
+
+    def test_correlated_exploration_has_materially_longer_action_runs_than_independent_sampling(
+        self,
+    ) -> None:
+        agent = self.make_agent(epsilon_start=1.0, explore_run_length=20)
+        state = np.array([-0.5, 0.0], dtype=np.float32)
+
+        random.seed(20250310)
+        correlated_actions = [agent.select_action(state) for _ in range(300)]
+        random.seed(20250310)
+        independent_actions = [random.randrange(agent.action_dim) for _ in range(300)]
+
+        self.assertGreaterEqual(
+            self.longest_identical_run(correlated_actions),
+            self.longest_identical_run(independent_actions) + 6,
+        )
+
+    def test_seeded_training_reproduces_callback_fields_except_elapsed_time(self) -> None:
+        class SeededTwoStepEnv:
+            def __init__(self) -> None:
+                self.reset_seeds: list[int | None] = []
+                self.steps = 0
+
+            def reset(self, *, seed: int | None = None):
+                self.reset_seeds.append(seed)
+                self.steps = 0
+                return np.array([-0.5, 0.0], dtype=np.float32), {}
+
+            def step(self, action: int):
+                self.steps += 1
+                terminated = self.steps == 2
+                return (
+                    np.array([-0.5, 0.0], dtype=np.float32),
+                    float(action),
+                    terminated,
+                    False,
+                    {},
+                )
+
+            def close(self) -> None:
+                pass
+
+        def run_once():
+            torch.manual_seed(321)
+            agent = self.make_agent(epsilon_start=1.0, epsilon_end=0.0, epsilon_decay=0.5)
+            events = []
+            env = SeededTwoStepEnv()
+            with patch("mountain_car.agents.dqn.gym.make", return_value=env):
+                returns = agent.train(3, log_interval=10, seed=123, episode_callback=events.append)
+            without_time = [{key: value for key, value in event.items() if key != "time"} for event in events]
+            return returns, without_time, env.reset_seeds
+
+        first, second = run_once(), run_once()
+
+        self.assertEqual(first, second)
+        self.assertEqual(first[2], [123, 124, 125])
+        self.assertEqual([event["epsilon"] for event in first[1]], [1.0, 0.5, 0.25])
+        self.assertEqual(
+            set(first[1][0]),
+            {"episode", "seed", "return", "steps", "terminated", "truncated", "epsilon"},
+        )
 
 
 class CartPoleLearningSanityTest(unittest.TestCase):
@@ -136,6 +291,7 @@ class CartPoleLearningSanityTest(unittest.TestCase):
                 buffer_capacity=5_000,
                 target_update_freq=5,
                 hidden=32,
+                explore_run_length=1,
             )
         self.assertEqual(agent.device.type, "cpu")
 

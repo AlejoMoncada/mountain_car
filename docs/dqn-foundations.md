@@ -1,6 +1,6 @@
 # DQN foundations
 
-This exercise implements the neural-network prediction and Bellman-update parts of DQN. It deliberately leaves MountainCar exploration unchanged: the remaining exploration limitation belongs to exercise 3.
+This exercise implements the neural-network prediction and Bellman-update parts of DQN. It also changes only the exploratory action-selection schedule for MountainCar: the neural-network prediction, Bellman update, reward handling, replay buffer, and target-network synchronization remain unchanged.
 
 ## Quick path
 
@@ -51,6 +51,29 @@ An environment can end an episode in two different ways:
 
 The provided training loop records `terminated`, not `terminated or truncated`, in the replay buffer.
 
-## Known exploration limitation
+## Correlated exploratory runs
 
-The current policy uses textbook per-step epsilon-greedy exploration. In MountainCar, independent random actions may fail to produce the sustained action sequences needed to build momentum. This is intentionally unresolved in this unit: exercise 3 will investigate and change action selection if the evidence supports it. No conclusion about MountainCar learning performance is claimed here.
+MountainCar needs sustained pushes to build momentum. The diagnosis in
+[`dqn-exploration-diagnosis.md`](dqn-exploration-diagnosis.md) measured that
+independent uniformly random actions did not reach the flag in 500 sampled
+episodes, and that the longest observed identical-action run was 11 steps.
+That measurement motivates making sustained exploratory actions reachable; it
+does not establish an optimal run length or demonstrate trained performance.
+
+`DQNAgent` therefore retains epsilon-greedy exploration but adds
+`explore_run_length`, whose default is 20. When an exploratory run begins, the
+agent samples an action uniformly and samples a total run length uniformly
+from 1 through `explore_run_length`. It reuses that action until the selected
+length is consumed. The run state is reset at the beginning of every training
+episode, so no exploratory action carries across an environment reset.
+
+`deterministic=True` remains pure greedy evaluation even if an exploratory run
+is active. This change is deliberately limited to action selection: it does
+not alter rewards, the Bellman target, replay-buffer contents, target-network
+updates, or the existing hyperparameter defaults. `explore_run_length` is
+persisted with the other DQN hyperparameters.
+
+The default 20 is a practical bound motivated by the need for sustained runs,
+not a tuned claim. Correlated runs increase the chance of long pushes, but do
+not guarantee that their direction, timing, or sequence will reach the goal;
+training and evaluation evidence belong to a separate experiment.
