@@ -18,6 +18,22 @@ Este repositorio, derivado del repositorio base del curso, contiene la solución
 
 Línea base medida: con acciones completamente aleatorias la bandera se alcanzó **0 veces en 500 episodios**, lo que motivó la corrección de exploración descrita en [docs/dqn-exploration-diagnosis.md](docs/dqn-exploration-diagnosis.md).
 
+### Explicación visual de los agentes
+
+#### Q-Learning tabular
+
+El agente discretiza la posición y la velocidad del carrito, elige una acción y actualiza la tabla Q después de cada paso. Al reiniciar el entorno, conserva lo aprendido.
+
+![Diagrama del ciclo de Q-Learning: observar, discretizar, elegir una acción, interactuar y actualizar la tabla Q.](docs/diagramas/diagrama-qlearning-memes.png)
+
+#### Deep Q-Network (DQN)
+
+El agente aproxima los valores Q con una red neuronal, almacena experiencias y aprende de lotes tomados del replay buffer. Una red objetivo sirve de referencia para calcular el objetivo de Bellman.
+
+![Diagrama del ciclo de DQN: elegir una acción, guardar la experiencia, muestrear un lote y actualizar la red mediante el error de Bellman.](docs/diagramas/diagrama-dqn-memes.png)
+
+Estos diagramas son material explicativo de apoyo. Los requisitos de los dibujos manuales para la entrega se mantienen en [la lista de verificación de esquemas](docs/esquemas/LEEME.md).
+
 ### Cómo ejecutar
 
 ```bash
@@ -41,6 +57,7 @@ Cada experimento escribe `training_episodes.csv`, `evaluation_episodes.csv`, `su
 | Diagnóstico de exploración | `docs/dqn-exploration-diagnosis.md` |
 | Protocolo y resultados tabulares | `docs/qlearning-experiment.md` |
 | Evidencia de resultados | `artifacts/qlearning/seed-20250308/`, `artifacts/dqn/seed-20250310/` |
+| Diagramas explicativos | [Q-Learning](docs/diagramas/diagrama-qlearning-memes.png), [DQN](docs/diagramas/diagrama-dqn-memes.png) |
 | Esquemas del estudiante | `docs/esquemas/` |
 
 ---
